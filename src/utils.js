@@ -113,7 +113,7 @@ export function getParsedDate(date) {
         hours12,
         fullHours12: getLeadingZeroNum(hours12),
         minutes: date.getMinutes(),
-        fullMinutes:  date.getMinutes() < 10 ? '0' + date.getMinutes() :  date.getMinutes()
+        fullMinutes: date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
     };
 }
 
@@ -291,7 +291,7 @@ export function addEventListener(el, type, listener) {
  * @return {HTMLElement|Boolean}
  */
 export function closest(target, selector) {
-    if (!target || target === document ||  target instanceof DocumentFragment) return false;
+    if (!target || target === document || target instanceof DocumentFragment) return false;
 
     if (target.matches(selector)) {
         return target;
@@ -373,4 +373,14 @@ export function getWordBoundaryRegExp(sign) {
     let symbols = '\\s|\\.|-|/|\\\\|,|\\$|\\!|\\?|:|;';
 
     return new RegExp('(^|>|' + symbols + ')(' + sign + ')($|<|' + symbols + ')', 'g');
+}
+
+export const generateId = () => {
+    let result = ''
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    const charactersLength = characters.length
+    for (let i = 0; i < 20; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength))
+    }
+    return result
 }

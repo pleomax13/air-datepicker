@@ -4,7 +4,7 @@ import {
     createDate,
     createElement,
     deepCopy,
-    deepMerge,
+    deepMerge, generateId,
     getDecade,
     getEl,
     getParsedDate,
@@ -52,7 +52,9 @@ export default class Datepicker {
 
         if (!this.$el) return;
 
-        this.$datepicker = createElement({className: 'air-datepicker'});
+        const id = generateId();
+
+        this.$datepicker = createElement({className: 'air-datepicker', id});
         this.opts = deepMerge({}, defaults, opts);
         this.$customContainer = this.opts.container ? getEl(this.opts.container) : false;
         this.$altField = getEl(this.opts.altField || false);
@@ -69,6 +71,10 @@ export default class Datepicker {
 
         if (this.$el.nodeName === 'INPUT') {
             this.elIsInput = true;
+        }
+
+        if (this.elIsInput) {
+            this.$el.setAttribute('aria-owns', id);
         }
 
         this.inited = false;

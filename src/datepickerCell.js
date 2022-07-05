@@ -58,13 +58,26 @@ export default class DatepickerCell {
 
     _createElement() {
         let {year, month, date} = getParsedDate(this.date);
+        let format = 'EEEE, MMMM d, yyyy';
+
+        if (this.singleType === 'month') {
+            format = 'MMMM';
+        } else if (this.singleType === 'year') {
+            format = 'yyyy';
+        }
+
+        const ariaLabel = this.dp.formatDate(this.date, format);
 
         this.$cell = createElement({
             className: this._getClassName(),
             attrs: {
                 'data-year': year,
                 'data-month': month,
-                'data-date': date
+                'data-date': date,
+                'aria-label': ariaLabel,
+                'data-aria-label': ariaLabel,
+                'id': this.date.getTime(),
+                'role': 'button',
             }
         });
     }
@@ -167,6 +180,7 @@ export default class DatepickerCell {
     focus = () => {
         this.$cell.classList.add('-focus-');
         this.focused = true;
+        this.dp.$el.setAttribute('aria-activedescendant', this.$cell.getAttribute('id'));
     }
 
     removeFocus = () => {
@@ -177,11 +191,13 @@ export default class DatepickerCell {
     select = () => {
         this.$cell.classList.add('-selected-');
         this.selected = true;
+        this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label') + ', выбрано');
     }
 
     removeSelect = () => {
         this.$cell.classList.remove('-selected-', '-range-from-', '-range-to-');
         this.selected = false;
+        this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label'));
     }
 
     _handleRangeStatus() {
@@ -196,6 +212,10 @@ export default class DatepickerCell {
 
         if (classes) {
             this.$cell.classList.add(...classes.split(' '));
+        }
+
+        if (this.$cell.classList.contains('-in-range-')) {
+            this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label') + ', выбрано');
         }
     }
 

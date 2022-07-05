@@ -39,6 +39,7 @@ export default class DatepickerBody {
     }
 
     init() {
+        this.dp.setFocusDate(false);
         this._buildBaseHtml();
         if (this.type === consts.days) {
             this.renderDayNames();
@@ -207,6 +208,7 @@ export default class DatepickerBody {
         this.destroyCells();
         this.dp.off(consts.eventChangeViewDate, this.onChangeViewDate);
         this.dp.off(consts.eventChangeCurrentView, this.onChangeCurrentView);
+        this.dp.$el.removeAttribute('aria-activedescendant');
     }
 
     handleClick = (e) => {

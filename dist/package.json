@@ -2,9 +2,9 @@
   "name": "air-datepicker",
   "version": "3.2.0",
   "scripts": {
-    "dev": "set NODE_ENV=development&& webpack",
-    "dev:serve": "npm run browser&& set NODE_ENV=development&& webpack serve",
-    "prod": "set NODE_ENV=production&& webpack",
+    "dev": "export NODE_ENV=development&& webpack",
+    "dev:serve": "npm run browser&& export NODE_ENV=development&& webpack serve",
+    "prod": "export NODE_ENV=production&& webpack",
     "browser": "open-cli http://localhost:8080 -- 'chrome' ",
     "build": "node scripts/build.js",
     "lint-js": "eslint --fix ./src/*.js",

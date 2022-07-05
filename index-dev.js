@@ -17,7 +17,7 @@ let selected = false;
 let opts = {
     // minDate: Date.now(),
     inline: false,
-    visible: false,
+    visible: true,
     locale: en,
     timepicker: true,
     // container: '.input-wrap',
@@ -27,7 +27,7 @@ let opts = {
     isMobile: false,
     // timepicker: true,
     autoClose: false,
-    range: false,
+    range: true,
     toggleSelected: false,
     // position: customPosition,
     // position: 'right center',
@@ -140,6 +140,7 @@ function customPosition({$datepicker, $target, $pointer, isViewChange, done}){
 }
 
 window.dp1 = new Datepicker($input1, opts);
+window.dp2 = new Datepicker($input2, opts);
 
 $bntDestroy.addEventListener('click', dp1.destroy)
 
