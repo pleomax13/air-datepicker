@@ -54,7 +54,7 @@ export default class Datepicker {
 
         const id = generateId();
 
-        this.$datepicker = createElement({className: 'air-datepicker', id});
+        this.$datepicker = createElement({className: 'air-datepicker', id, attrs: {'role': 'application'}});
         this.opts = deepMerge({}, defaults, opts);
         this.$customContainer = this.opts.container ? getEl(this.opts.container) : false;
         this.$altField = getEl(this.opts.altField || false);
