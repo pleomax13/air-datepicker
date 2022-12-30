@@ -12,7 +12,7 @@ var _default = {
   monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   today: 'Today',
   clear: 'Clear',
-  dateFormat: 'MM/dd/yyyy',
+  dateFormat: 'MM/dd/yy',
   timeFormat: 'hh:mm aa',
   firstDay: 0
 };
