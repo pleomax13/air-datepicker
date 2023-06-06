@@ -814,14 +814,14 @@ export default class Datepicker {
 
     _getInputValue = (dateFormat) => {
         let {selectedDates, opts} = this,
-            {multipleDates, multipleDatesSeparator} = opts;
+            {multipleDates, multipleDatesSeparator, range} = opts;
 
         if (!selectedDates.length) return '';
 
         let formatIsFunction = typeof dateFormat === 'function';
 
         let value = formatIsFunction
-            ? dateFormat(multipleDates ? selectedDates : selectedDates[0])
+            ? dateFormat(multipleDates || range ? selectedDates : selectedDates[0])
             : selectedDates.map((date) => {
                 return this.formatDate(date, dateFormat);
             });
