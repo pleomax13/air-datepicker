@@ -30,9 +30,7 @@ export function createElement({tagName = 'div', className = '', innerHtml = '', 
     }
 
     if (attrs) {
-        for (let attr in attrs) {
-            $element.setAttribute(attr, attrs[attr]);
-        }
+        setAttribute($element, attrs);
     }
 
     return $element;
@@ -46,6 +44,8 @@ export function createElement({tagName = 'div', className = '', innerHtml = '', 
  */
 export function setAttribute(el, attrs) {
     for (let [name, value] of Object.entries(attrs)) {
+        if (value === undefined) continue;
+
         el.setAttribute(name, value);
     }
     return el;
@@ -94,12 +94,14 @@ export function getDaysCount(date) {
  *  minutes: number,
  *  fullMonth: string,
  *  day: number,
- *  fullMinutes: (string|*)
+ *  fullMinutes: (string|*),
+ *  hours12: number,
+ *  dayPeriod: 'am' | 'pm'
  * }}
  */
 export function getParsedDate(date) {
     let hours = date.getHours(),
-        hours12 = hours % 12 === 0 ? 12 : hours % 12;
+        {hours: hours12, dayPeriod} = getDayPeriodFromHours24(hours);
 
     return {
         year: date.getFullYear(),
@@ -111,9 +113,20 @@ export function getParsedDate(date) {
         hours,
         fullHours: getLeadingZeroNum(hours),
         hours12,
+        dayPeriod,
         fullHours12: getLeadingZeroNum(hours12),
         minutes: date.getMinutes(),
-        fullMinutes: date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
+        fullMinutes:  date.getMinutes() < 10 ? '0' + date.getMinutes() :  date.getMinutes()
+    };
+}
+
+export function getDayPeriodFromHours24(hours) {
+    let hours12 = hours % 12 === 0 ? 12 : hours % 12;
+    let dayPeriod = hours > 11 ? 'pm' : 'am';
+
+    return {
+        dayPeriod,
+        hours: hours12
     };
 }
 
@@ -148,18 +161,7 @@ export function subDays(date, days) {
 }
 
 /**
- * Add days to date
- * @param {Date} date
- * @param {Number} days
- * @return {Date}
- */
-export function addDays(date, days) {
-    let {year, month, date: _date} = getParsedDate(date);
-    return new Date(year, month, _date + days);
-}
-
-/**
- * Class names handler, inspired by https://github.com/JedWatson/classnames but very simplified
+ * Class names' handler, inspired by https://github.com/JedWatson/classnames but very simplified
  * @param {String|Object} classes - class names, could contain strings or object
  */
 export function classNames(...classes) {
@@ -291,7 +293,7 @@ export function addEventListener(el, type, listener) {
  * @return {HTMLElement|Boolean}
  */
 export function closest(target, selector) {
-    if (!target || target === document || target instanceof DocumentFragment) return false;
+    if (!target || target === document ||  target instanceof DocumentFragment) return false;
 
     if (target.matches(selector)) {
         return target;
@@ -350,6 +352,15 @@ export function deepMerge(target, ...objects) {
 }
 
 /**
+ * Checks if ISO date string consists only of numbers
+ * @param {string} dateString
+ * @returns {boolean}
+ */
+function dateStringIsDateOnly(dateString) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+}
+
+/**
  * Creates Date object from string or number. If passed param is instance of Date, then just returns it.
  * @param {number|string|Date} date
  * @return {Date | boolean}
@@ -358,6 +369,12 @@ export function createDate(date) {
     let resultDate = date;
 
     if (!(date instanceof Date)) {
+        // If string is date-only string, we should add time to it
+        // so created date will be in a local time
+        // https://github.com/t1m0n/air-datepicker/issues/589
+        if (typeof date === 'string' && dateStringIsDateOnly(date)) {
+            date += 'T00:00:00';
+        }
         resultDate = new Date(date);
     }
 
@@ -373,14 +390,4 @@ export function getWordBoundaryRegExp(sign) {
     let symbols = '\\s|\\.|-|/|\\\\|,|\\$|\\!|\\?|:|;';
 
     return new RegExp('(^|>|' + symbols + ')(' + sign + ')($|<|' + symbols + ')', 'g');
-}
-
-export const generateId = () => {
-    let result = ''
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    const charactersLength = characters.length
-    for (let i = 0; i < 20; i++) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength))
-    }
-    return result
 }

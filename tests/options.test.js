@@ -1,12 +1,13 @@
 import {beforeAll, afterEach, describe, test, it, expect} from '@jest/globals';
 import Datepicker from 'datepicker';
-import {isSameDate} from 'utils';
 import en from 'locale/en';
 import de from 'locale/de';
 import consts from 'consts';
-import {DAY} from './helpers';
+import {DAY, sleep} from './helpers';
 
 let $input, $altInput, dp, $datepicker;
+const timeFormat = new Intl.DateTimeFormat('ru', {hour: 'numeric', minute: 'numeric'});
+
 
 beforeAll(() => {
     $input = document.createElement('input');
@@ -15,11 +16,6 @@ beforeAll(() => {
     document.body.appendChild($altInput);
 });
 
-afterEach(() => {
-    dp.destroy();
-    dp = false;
-    $datepicker = false;
-});
 
 function init(opts) {
     dp = new Datepicker($input, {visible: true, ...opts});
@@ -119,8 +115,8 @@ describe('OPTIONS TESTS', () => {
         let date = new Date('2021-04-28T23:05'),
             values = {
                 'T': date.getTime().toString(),
-                'aa': 'am',
-                'AA': 'AM',
+                'aa': 'pm',
+                'AA': 'PM',
                 'H': '23',
                 'HH': '23',
                 'm': '5',
@@ -227,6 +223,37 @@ describe('OPTIONS TESTS', () => {
 
             init({
                 toggleSelected: false
+            });
+
+            dp.selectDate(date);
+            dp.getCell(date).click();
+
+            expect(dp.selectedDates).toHaveLength(1);
+        });
+
+        it('should receive correct arguments if it is a function', function (done) {
+            let date = new Date();
+
+            init({
+                toggleSelected: ({datepicker, date}) => {
+                    expect(datepicker).toBeInstanceOf(Datepicker);
+                    expect(date).toBeInstanceOf(Date);
+
+                    done();
+                }
+            });
+
+            dp.selectDate(date);
+            dp.getCell(date).click();
+        });
+
+        it('should handle option as function correctly', function () {
+            let date = new Date();
+
+            init({
+                toggleSelected: () => {
+                    return false;
+                }
             });
 
             dp.selectDate(date);
@@ -483,6 +510,408 @@ describe('OPTIONS TESTS', () => {
             dp.selectDate(date2);
 
             expect(dp.visible).toBe(false);
+        });
+    });
+
+    describe('onRenderCell', () => {
+        it('should change cell class names', () => {
+            init({
+                inline: true,
+                onRenderCell() {
+                    return {
+                        classes: 'custom-cell-class'
+                    };
+                }
+            });
+
+            let cell = $datepicker.querySelector('.air-datepicker-cell');
+
+            expect(cell.classList.contains('custom-cell-class')).toBe(true);
+        });
+
+        it('should be able to disable cell', () => {
+            init({
+                startDate: '2022.09.01',
+                inline: true,
+                onRenderCell({date}) {
+                    if (date.getDate() === 8) {
+                        return {
+                            disabled: true
+                        };
+                    }
+                }
+            });
+
+            let cell = dp.getCell('2022.09.08');
+
+            expect(cell.classList.contains('-disabled-')).toBe(true);
+        });
+
+        it('should be able to change cell html', () => {
+            init({
+                inline: true,
+                onRenderCell() {
+                    return {
+                        html: '<div>Custom content</div>'
+                    };
+                }
+            });
+
+            let cell = $datepicker.querySelector('.air-datepicker-cell');
+            expect(cell.textContent).toBe('Custom content');
+        });
+
+        it('should be able to change cell html and not affect selecting dates', () => {
+            init({
+                inline: true,
+                onRenderCell() {
+                    return {
+                        html: '<div class="custom-cell">Custom content</div>'
+                    };
+                }
+            });
+
+            let cell = $datepicker.querySelector('.custom-cell');
+            expect(() => {
+                cell.click();
+            }).not.toThrow();
+        });
+
+        it('should be able to add custom attributes to cells', () => {
+            init({
+                inline: true,
+                onRenderCell() {
+                    return {
+                        attrs: {
+                            'data-custom-attr': 'ok'
+                        }
+                    };
+                }
+            });
+
+            let cell = $datepicker.querySelector('[data-custom-attr="ok"]');
+
+            expect(cell).toBeTruthy();
+        });
+    });
+
+    describe('selectedDates', () => {
+        it('should select dates on init', async () => {
+            const date = new Date('2022-12-08');
+            init({
+                visible: false,
+                startDate: date,
+                selectedDates: [date]
+            });
+
+
+            // As selecting date is a little bit async, we'll wait here until
+            // values will be changed
+            await sleep();
+            expect(dp.$el).toHaveValue('08.12.2022');
+            expect(dp.selectedDates).toHaveLength(1);
+        });
+
+        it('should hilite selected cell on init', async () => {
+            const date = new Date('2024-03-01');
+            init({
+                visible: true,
+                startDate: date,
+                selectedDates: [date]
+            });
+
+            // As selecting date is a little bit async, we'll wait here until
+            // values will be changed
+            await sleep();
+            const cell = dp.getCell(date);
+            expect(cell).toHaveClass('-selected-');
+        });
+
+        it('should select dates with time on init with correct day period', async () => {
+            const date = new Date('2022-12-08 23:21');
+            init({
+                visible: false,
+                timepicker: true,
+                locale: en,
+                selectedDates: [date]
+            });
+
+            await sleep();
+            expect(dp.$el).toHaveValue('12/08/2022 11:21 pm');
+        });
+    });
+
+    describe('onBeforeSelect', () => {
+        it('should receive correct arguments', (done) => {
+            const selectedDate = new Date('2023-07-18');
+            init({
+                visible: true,
+                onBeforeSelect({date, datepicker}) {
+                    const assertion = date instanceof Date && datepicker instanceof Datepicker;
+                    expect(assertion).toBeTruthy();
+                    done();
+                }
+            });
+
+            dp.selectDate(selectedDate);
+        });
+        it('should disable date selection if returns false', (done) => {
+            const selectedDate = new Date('2023-07-18');
+            init({
+                visible: true,
+                onBeforeSelect({date}) {
+                    return date.toLocaleDateString('ru') !== selectedDate.toLocaleDateString('ru');
+                }
+            });
+
+            dp.selectDate(selectedDate).then(() => {
+                expect(dp.selectedDates).toHaveLength(0);
+                done();
+            });
+        });
+
+        it('should enable date selection if returns true', (done) => {
+            const selectedDate = new Date('2023-07-18');
+            init({
+                visible: true,
+                onBeforeSelect({date}) {
+                    return date.toLocaleDateString('ru') === selectedDate.toLocaleDateString('ru');
+                }
+            });
+
+            dp.selectDate(selectedDate).then(() => {
+                expect(dp.selectedDates).toHaveLength(1);
+                done();
+            });
+        });
+    });
+
+
+    describe('onFocus', () => {
+        it('should receive correct arguments', (done) => {
+            const selectedDate = new Date('2023-07-18');
+            init({
+                visible: true,
+                onFocus({date, datepicker}) {
+                    const assertion = date instanceof Date && datepicker instanceof Datepicker;
+                    expect(assertion).toBeTruthy();
+                    done();
+                }
+            });
+
+            dp.setFocusDate(selectedDate);
+        });
+        it('should be triggered when focusing cell', (done) => {
+            const selectedDate = new Date('2023-07-18');
+            init({
+                visible: true,
+                onFocus({date}) {
+                    expect(date.toLocaleDateString('ru')).toEqual('18.07.2023');
+                    done();
+                }
+            });
+
+            dp.setFocusDate(selectedDate);
+        });
+    });
+
+    describe('fixedHeight', () => {
+        it('should render 6 weeks in every month, when true', () => {
+            init({
+                fixedHeight: true,
+                visible: true,
+                startDate: '2021-02-01'
+            });
+
+            const $dayCells = $datepicker.querySelectorAll('.air-datepicker-cell');
+
+            expect($dayCells).toHaveLength(42);
+        });
+        it('should render weeks according to dates length, when false', () => {
+            init({
+                visible: true,
+                startDate: '2021-02-01'
+            });
+
+            const $dayCells = $datepicker.querySelectorAll('.air-datepicker-cell');
+
+            expect($dayCells).toHaveLength(28);
+        });
+    });
+
+    describe('range', () => {
+        it('should enable range mode', () => {
+            init({
+                range: true,
+                startDate: '2023-10-10',
+            });
+
+            dp.getCell('2023-10-10').click();
+            dp.getCell('2023-10-22').click();
+
+            expect(dp.selectedDates).toHaveLength(2);
+        });
+
+        it('should select dates in proper', () => {
+            init({
+                range: true
+            });
+
+            // Select larger date first
+            dp.selectDate(['2023-10-22', '2023-10-10']);
+
+            expect(dp.rangeDateFrom.toLocaleDateString('ru')).toEqual('10.10.2023');
+        });
+
+        it('should change lastSelectedDate if toggleSelected=false', () => {
+            init({
+                range: true,
+                toggleSelected: false,
+            });
+            const from = '2023-10-10';
+            const to = '2023-10-22';
+
+            dp.selectDate([from, to]);
+            dp.getCell(from).click();
+
+            expect(dp.lastSelectedDate.toLocaleDateString('ru')).toEqual('10.10.2023');
+        });
+
+        it('should be able to change time by clicking on selected range dates', () => {
+            init({
+                range: true,
+                toggleSelected: false,
+                timepicker: true
+            });
+            const from = '2023-10-10';
+            const to = '2023-10-22';
+
+            dp.selectDate([from, to]);
+            // Change time in `to` date
+            dp.trigger(consts.eventChangeTime, {
+                hours: 20,
+                minutes: 20,
+            });
+
+            // Update lastSelectedDate and update time in `from` date
+            dp.getCell(from).click();
+            dp.trigger(consts.eventChangeTime, {
+                hours: 10,
+                minutes: 10,
+            });
+
+            expect(timeFormat.format(dp.selectedDates[0])).toEqual('10:10');
+            expect(timeFormat.format(dp.selectedDates[1])).toEqual('20:20');
+        });
+
+        it('should handle time correctly when range dates are the same', () => {
+            init({
+                range: true,
+                toggleSelected: false,
+                timepicker: true,
+                startDate: '2023-10-10',
+            });
+            const date = '2023-10-10';
+
+            dp.getCell(date).click();
+            dp.trigger(consts.eventChangeTime, {
+                hours: 10,
+                minutes: 10,
+            });
+
+            dp.getCell(date).click();
+            dp.trigger(consts.eventChangeTime, {
+                hours: 20,
+                minutes: 20,
+            });
+
+            expect(timeFormat.format(dp.selectedDates[0])).toEqual('10:10');
+            expect(timeFormat.format(dp.selectedDates[1])).toEqual('20:20');
+        });
+
+        it('should work correctly when user unselects "to" date and then selects other', () => {
+            init({
+                range: true,
+                toggleSelected: true,
+                startDate: '2024-05-26',
+            });
+
+            // Select two dates
+            dp.getCell('2024-05-12').click();
+            dp.getCell('2024-05-17').click();
+
+            // Unselect the last one
+            dp.getCell('2024-05-17').click();
+
+            // Select other 'to' date
+            dp.getCell('2024-05-23').click();
+
+            expect(dp.selectedDates).toHaveLength(2);
+            expect(dp.selectedDates[0].toLocaleDateString('ru')).toEqual('12.05.2024');
+            expect(dp.selectedDates[1].toLocaleDateString('ru')).toEqual('23.05.2024');
+
+        });
+
+        it('should work correctly when user unselects "from" date and then selects another', () => {
+            init({
+                range: true,
+                toggleSelected: true,
+                startDate: '2024-05-26',
+            });
+
+            // Select two dates
+            dp.getCell('2024-05-12').click();
+            dp.getCell('2024-05-17').click();
+
+            // Unselect the last one
+            dp.getCell('2024-05-12').click();
+
+            // Select other 'to' date
+            dp.getCell('2024-05-01').click();
+
+            expect(dp.selectedDates).toHaveLength(2);
+            expect(dp.selectedDates[0].toLocaleDateString('ru')).toEqual('01.05.2024');
+            expect(dp.selectedDates[1].toLocaleDateString('ru')).toEqual('17.05.2024');
+
+        });
+
+        it('should work correctly when user unselects "to" date and then selects other date earlier than "from"', () => {
+            init({
+                range: true,
+                toggleSelected: true,
+                startDate: '2024-05-26',
+            });
+
+            // Select two dates
+            dp.getCell('2024-05-12').click();
+            dp.getCell('2024-05-17').click();
+
+            // Unselect the last one
+            dp.getCell('2024-05-17').click();
+
+            // Select other 'to' date
+            dp.getCell('2024-05-01').click();
+
+            expect(dp.selectedDates).toHaveLength(2);
+            expect(dp.selectedDates[0].toLocaleDateString('ru')).toEqual('01.05.2024');
+            expect(dp.selectedDates[1].toLocaleDateString('ru')).toEqual('12.05.2024');
+
+        });
+
+        it('should reset cell styles on "clear" event', () => {
+            init({
+                range: true,
+                startDate: '2024-11-15',
+            });
+
+            dp.getCell('2024-11-01').click();
+            dp.getCell('2024-11-17').click();
+
+            dp.clear();
+
+            const $cells = $datepicker.querySelectorAll('.-in-range-');
+
+            expect($cells).toHaveLength(0);
         });
     });
 });

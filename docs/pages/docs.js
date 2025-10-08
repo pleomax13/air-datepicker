@@ -9,7 +9,7 @@ import Example from 'components/example';
 import AirDatepicker from 'components/airDatepicker';
 import Code from 'components/code';
 import Paragraph from 'components/common/paragraph';
-import * as examples from 'examples/commonExamples';
+import * as examples from 'examples/code/commonExamples';
 import {FormattedMessage, useIntl} from 'react-intl';
 import Link from 'components/common/link';
 import DList from 'components/common/dList';
@@ -23,9 +23,10 @@ import {
     optsButtonsShape, optsDateFormatFunc,
     optsNavTitlesDefaults,
     optsSelectedDatesExample
-} from 'examples/commonExamples';
+} from 'examples/code/commonExamples';
 
 const trueField = (() => <Code inline>{'true'}</Code>)();
+const falseField = (() => <Code inline>{'false'}</Code>)();
 const UnicodeStandardLink = <Link href={'https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table'} target={'_blank'}>Unicode Technical Standard #35</Link>;
 
 function Docs({} = {}) {
@@ -148,8 +149,11 @@ function Docs({} = {}) {
                                 <Param name={'altFieldDateFormat'} type={'string | (date) => string'} defaultValue={'"T"'}>
                                     <Paragraph id={'optsAltFieldDateFormat'} />
                                 </Param>
-                                <Param name={'toggleSelected'} type={'boolean'} defaultValue={'true'}>
+                                <Param name={'toggleSelected'} type={'boolean | ({datepicker, date}) => boolean'} defaultValue={'true'}>
                                     <Paragraph id={'optsToggleSelected'} values={{
+                                        true: <Code inline>true</Code>
+                                    }} />
+                                    <Paragraph id={'optsToggleSelectedFunc'} values={{
                                         true: <Code inline>true</Code>
                                     }} />
                                 </Param>
@@ -351,8 +355,12 @@ function Docs({} = {}) {
                                     </Example>
                                 </Param>
 
+                                <Param name={'fixedHeight'} type={'boolean'} defaultValue={'false'}>
+                                    <Paragraph id={'optsFixedHeight'} values={{trueField}}/>
+                                </Param>
+
                                 <Param name={'timepicker'} type={'boolean'} defaultValue={'false'}>
-                                    <Paragraph id={'optsTimepicker'}/>
+                                    <Paragraph id={'optsTimepicker'} />
                                 </Param>
                                 <Param name={'onlyTimepicker'} type={'boolean'} defaultValue={'false'}>
                                     <Paragraph id={'optsOnlyTimepicker'}/>
@@ -418,6 +426,20 @@ function Docs({} = {}) {
                                         <Param name={'formattedDate'} type={'string | string[]'} definition={'eventsOnSelectFormattedDate'} />
                                         <Param name={'datepicker'} type={'AirDatepicker'} definition={'eventsOnSelectAirDatepicker'} />
                                     </Param.List>
+                                    <Paragraph id={'eventsOnSelectChangeEvent'} values={{
+                                        changeField: <Code inline language={'javascript'}>change</Code>,
+                                        inputField: <Code inline language={'html'}>&lt;input /&gt;</Code>
+                                    }}/>
+                                </Param>
+                                <Param name={'onBeforeSelect'} type={'({date, datepicker}) => boolean'}>
+                                    <Paragraph id={'eventsOnBeforeSelect'} values={{
+                                        trueField,
+                                        falseField
+                                    }}/>
+                                    <Param.List nested>
+                                        <Param name={'date'} type={'Date'} definition={'eventsOnBeforeSelectDate'}/>
+                                        <Param name={'datepicker'} type={'AirDatepicker'} definition={'eventsOnSelectAirDatepicker'} />
+                                    </Param.List>
                                 </Param>
                                 <Param name={'onChangeViewDate'} type={'({month, year, decade}) => void'}>
                                     <Paragraph id={'eventsOnChangeViewDate'}/>
@@ -430,7 +452,7 @@ function Docs({} = {}) {
                                 <Param name={'onChangeView'} type={'("days | months | years") => void'}>
                                     <Paragraph id={'eventsOnChangeView'} />
                                 </Param>
-                                <Param name={'onRenderCell'} type={'({date, cellType, datepicker}) => {html, classes, disabled}'}>
+                                <Param name={'onRenderCell'} type={'({date, cellType, datepicker}) => {html, classes, disabled, attrs}'}>
                                     <Paragraph id={'eventsOnRenderCell'} />
                                     <Paragraph id={'eventsOnRenderCell2'} />
                                     <Param.List nested>
@@ -443,6 +465,7 @@ function Docs({} = {}) {
                                         <Param name={'html'} type={'string'} definition={'eventsOnRenderCellHtml'}/>
                                         <Param name={'classes'} type={'string'} definition={'eventsOnRenderCellClasses'} />
                                         <Param name={'disabled'} type={'boolean'} definition={'eventsOnRenderCellDisabled'} />
+                                        <Param name={'attrs'} type={'Record<string, string | number | undefined>'} definition={'eventsOnRenderCellAttrs'} />
                                     </Param.List>
                                     <Example>
                                         <Code>{examples.eventsOnRenderCell}</Code>
@@ -466,7 +489,14 @@ function Docs({} = {}) {
                                     }} />
                                     <Param.List nested>
                                         <Param name={'dayIndex'} type={'index'} definition={'eventsOnClickDayNameDayIndex'} />
-                                        <Param name={'datepicker'} type={'object'} definition={'eventsOnClickDayNameDatepicker'} />
+                                        <Param name={'datepicker'} type={'AirDatepicker'} definition={'eventsOnSelectAirDatepicker'} />
+                                    </Param.List>
+                                </Param>
+                                <Param name={'onFocus'} type='({date, datepicker}) => void'>
+                                    <Paragraph id={'eventsOnFocus'}/>
+                                    <Param.List nested>
+                                        <Param name={'date'} type={'Date'} definition={'eventsOnFocusDate'} />
+                                        <Param name={'datepicker'} type={'AirDatepicker'} definition={'eventsOnClickDayNameDatepicker'} />
                                     </Param.List>
                                 </Param>
                             </Param.List>

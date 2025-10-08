@@ -25,7 +25,7 @@ export default class DatepickerCell {
     }
 
     init() {
-        let {range, onRenderCell} = this.opts;
+        let {onRenderCell} = this.opts;
 
         if (onRenderCell) {
             this.customData = onRenderCell({
@@ -37,12 +37,11 @@ export default class DatepickerCell {
 
         this._createElement();
         this._bindDatepickerEvents();
-        this._handleInitialFocusStatus();
-        if (this.dp.hasSelectedDates) {
-            this._handleSelectedStatus();
-            if (range) {
-                this._handleRangeStatus();
-            }
+
+        if (this.customData?.disabled) {
+            this.dp.disableDate(this.date);
+        } else if (this.customData?.disabled === false) {
+            this.dp.enableDate(this.date);
         }
     }
 
@@ -57,38 +56,28 @@ export default class DatepickerCell {
     }
 
     _createElement() {
-        let {year, month, date} = getParsedDate(this.date);
-        let format = 'EEEE, MMMM d, yyyy';
-
-        if (this.singleType === 'month') {
-            format = 'MMMM';
-        } else if (this.singleType === 'year') {
-            format = 'yyyy';
-        }
-
-        const ariaLabel = this.dp.formatDate(this.date, format);
+        let {year, month, fullMonth, date, fullDate} = getParsedDate(this.date);
+        let extraAttrs = this.customData?.attrs || {};
 
         this.$cell = createElement({
-            className: this._getClassName(),
             attrs: {
                 'data-year': year,
                 'data-month': month,
                 'data-date': date,
-                'aria-label': ariaLabel,
-                'data-aria-label': ariaLabel,
-                'id': this.date.getTime(),
-                'role': 'button',
+                'data-iso-date': `${year}-${fullMonth}-${fullDate}`,
+                ...extraAttrs,
             }
         });
+        this.$cell.adpCell = this;
     }
 
     _getClassName() {
         let currentDate = new Date();
         let {selectOtherMonths, selectOtherYears} = this.opts;
-        let {minDate, maxDate} = this.dp;
+        let {minDate, maxDate, isDateDisabled} = this.dp;
         let {day} = getParsedDate(this.date);
         let isOutOfMinMaxRange = this._isOutOfMinMaxRange();
-        let disabled = this.customData?.disabled;
+        let isDisabled = isDateDisabled(this.date);
 
         let classNameCommon = classNames(
             'air-datepicker-cell',
@@ -106,23 +95,23 @@ export default class DatepickerCell {
                 classNameType = classNames({
                     '-weekend-': this.dp.isWeekend(day),
                     '-other-month-': this.isOtherMonth,
-                    '-disabled-': this.isOtherMonth && !selectOtherMonths || isOutOfMinMaxRange || disabled
+                    '-disabled-': this.isOtherMonth && !selectOtherMonths || isOutOfMinMaxRange || isDisabled
                 });
                 break;
             case consts.months:
                 classNameType = classNames({
-                    '-disabled-': isOutOfMinMaxRange || disabled
+                    '-disabled-': isOutOfMinMaxRange
                 });
                 break;
             case consts.years:
                 classNameType = classNames({
                     '-other-decade-': this.isOtherDecade,
-                    '-disabled-': isOutOfMinMaxRange || (this.isOtherDecade && !selectOtherYears) || disabled
+                    '-disabled-': isOutOfMinMaxRange || (this.isOtherDecade && !selectOtherYears)
                 });
                 break;
         }
 
-        return classNames(classNameCommon, classNameType, this.customData?.classes);
+        return classNames(classNameCommon, classNameType, this.customData?.classes).split(' ');
     }
 
     _getHtml() {
@@ -180,7 +169,6 @@ export default class DatepickerCell {
     focus = () => {
         this.$cell.classList.add('-focus-');
         this.focused = true;
-        this.dp.$el.setAttribute('aria-activedescendant', this.$cell.getAttribute('id'));
     }
 
     removeFocus = () => {
@@ -191,31 +179,39 @@ export default class DatepickerCell {
     select = () => {
         this.$cell.classList.add('-selected-');
         this.selected = true;
-        this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label') + ', выбрано');
     }
 
     removeSelect = () => {
         this.$cell.classList.remove('-selected-', '-range-from-', '-range-to-');
         this.selected = false;
-        this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label'));
     }
 
     _handleRangeStatus() {
-        let {rangeDateFrom, rangeDateTo} = this.dp;
-        let classes = classNames({
-            '-in-range-': rangeDateFrom && rangeDateTo && isDateBetween(this.date, rangeDateFrom, rangeDateTo),
-            '-range-from-': rangeDateFrom && isSameDate(this.date, rangeDateFrom, this.type),
-            '-range-to-': rangeDateTo && isSameDate(this.date, rangeDateTo, this.type)
-        });
+        const {selectedDates, focusDate, rangeDateTo, rangeDateFrom} = this.dp;
+        const selectedDatesLen = selectedDates.length;
 
         this.$cell.classList.remove('-range-from-', '-range-to-', '-in-range-');
 
-        if (classes) {
-            this.$cell.classList.add(...classes.split(' '));
+        if (!selectedDatesLen) return;
+
+        let from = rangeDateFrom;
+        let to = rangeDateTo;
+
+        if (selectedDatesLen === 1 && focusDate) {
+            const focusDateIsLargerThenSelected = isDateBigger(focusDate, selectedDates[0]);
+
+            from =  focusDateIsLargerThenSelected ? selectedDates[0] : focusDate;
+            to = focusDateIsLargerThenSelected ? focusDate : selectedDates[0];
         }
 
-        if (this.$cell.classList.contains('-in-range-')) {
-            this.$cell.setAttribute('aria-label', this.$cell.getAttribute('data-aria-label') + ', выбрано');
+        let classes = classNames({
+            '-in-range-': from && to && isDateBetween(this.date, from, to),
+            '-range-from-': from && isSameDate(this.date, from, this.type),
+            '-range-to-': to && isSameDate(this.date, to, this.type)
+        });
+
+        if (classes) {
+            this.$cell.classList.add(...classes.split(' '));
         }
     }
 
@@ -234,6 +230,18 @@ export default class DatepickerCell {
         if (datesAreSame) {
             this.focus();
         }
+    }
+
+    _handleClasses() {
+        this.$cell.setAttribute('class', '');
+        this._handleInitialFocusStatus();
+        if (this.dp.hasSelectedDates) {
+            this._handleSelectedStatus();
+            if (this.dp.opts.range) {
+                this._handleRangeStatus();
+            }
+        }
+        this.$cell.classList.add(...this._getClassName());
     }
 
     get isDisabled() {
@@ -280,7 +288,8 @@ export default class DatepickerCell {
 
     render = () => {
         this.$cell.innerHTML = this._getHtml();
-        this.$cell.adpCell = this;
+
+        this._handleClasses();
 
         return this.$cell;
     }
