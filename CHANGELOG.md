@@ -1,5 +1,10 @@
 # Changelog
 
+### v3.7.0
+* improved work with screen readers
+* dateFormat is also enabled for date ranges
+* add availableDates function - use to enable only some dates
+
 ### v3.6.0
 * added iso-date data attribute to the cells, [#640](https://github.com/t1m0n/air-datepicker/issues/640)
 * added triggering `change` event on `<input />` element when user selects a date in the calendar [#624](https://github.com/t1m0n/air-datepicker/issues/624)
